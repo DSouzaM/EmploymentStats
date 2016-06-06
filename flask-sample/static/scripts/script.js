@@ -22,6 +22,7 @@ $(function() {
 	}
 	sock.onmessage = function(event) {
 		console.log(event.data);
+		sock.close();
 	}
 
 })

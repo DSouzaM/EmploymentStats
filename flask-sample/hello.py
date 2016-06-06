@@ -7,7 +7,7 @@ name = 'Matt'
 
 @app.route('/')
 def index():
-    return render_template('index.html', name=name)
+	return render_template('index.html', name=name)
 
 @app.route('/name', methods=['GET'])
 def getName():
@@ -26,7 +26,7 @@ def handleSocket(ws):
 
 
 if __name__ == "__main__":
-    from gevent import pywsgi
-    from geventwebsocket.handler import WebSocketHandler
-    server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
-    server.serve_forever()
+	from gevent import pywsgi
+	from geventwebsocket.handler import WebSocketHandler
+	server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
+	server.serve_forever()
