@@ -18,11 +18,11 @@ CREATE TABLE IF NOT EXISTS faculties (
 
 CREATE TABLE IF NOT EXISTS employment (
 	id INTEGER PRIMARY KEY,
-	term_id INTEGER,
+	term INTEGER,
 	date INTEGER,
-	faculty_id INTEGER,
+	faculty INTEGER,
 	level STRING,
 	employed INTEGER,
 	unemployed INTEGER
 );
-CREATE UNIQUE INDEX IF NOT EXISTS employment_index ON employment (term_id, date, faculty_id, level);
+CREATE UNIQUE INDEX IF NOT EXISTS employment_index ON employment (term, date, faculty, level);
