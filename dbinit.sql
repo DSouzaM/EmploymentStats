@@ -11,10 +11,12 @@ CREATE TABLE IF NOT EXISTS dates (
 CREATE UNIQUE INDEX IF NOT EXISTS date_index ON dates (term, date);
 
 CREATE TABLE IF NOT EXISTS faculties (
-	id INTEGER PRIMARY KEY,
+	id INTEGER,
+	term INTEGER,
 	faculty STRING,
 	name STRING
 );
+CREATE UNIQUE INDEX IF NOT EXISTS faculty_index ON faculties (id, term);
 
 CREATE TABLE IF NOT EXISTS employment (
 	id INTEGER PRIMARY KEY,

@@ -51,16 +51,37 @@ def initialize():
 def insert(table, data):
 	if len(data) <= 0:
 		return
+	with sqlite3.connect(database_path) as connection:
+		cursor = connection.cursor();
+		columnsString = __getColumns(data)
+		for row in range(len(data)):
+			cursor.execute('INSERT OR REPLACE INTO {table} {columns} VALUES {row};'.format(table=table, columns=columnsString, row=__getRow(data,row)))
 
-	connection = sqlite3.connect(database_path)
-	cursor = connection.cursor();
-
-	columnsString = __getColumns(data)
-	for row in range(len(data)):
-		cursor.execute('INSERT OR REPLACE INTO {table} {columns} VALUES {row};'.format(table=table, columns=columnsString, row=__getRow(data,row)))
-
-	connection.commit()
-	connection.close()
+		connection.commit()
 
 def getMissingEmploymentStats():
 	return __runQuery(diff_path)
+
+def getTermsMap():
+	with sqlite3.connect(database_path) as connection:
+		cursor = connection.cursor()
+		cursor.execute('SELECT id,term FROM terms')
+		results = {}
+		for result 	in cursor.fetchall():
+			results[result[0]] = str(result[1])
+		return results
+
+def getFacultiesMap():
+	with sqlite3.connect(database_path) as connection:
+		cursor = connection.cursor()
+		cursor.execute('SELECT id,faculty,name FROM faculties')
+		results = {}
+		for result in cursor.fetchall():
+			results[result[0]] = str(result[1] + ' ' + result[2])
+		return results
+
+def dropTable(table):
+	with sqlite3.connect(database_path) as connection:
+		cursor = connection.cursor()
+		cursor.execute('DROP TABLE IF EXISTS {table}'.format(table=table));
+		connection.commit()

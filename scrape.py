@@ -1,4 +1,4 @@
-import requests, re, database
+import requests, re
 
 ### URLs and Regex Strings
 
@@ -23,45 +23,45 @@ def getPassword():
 
 ### Scraping and Parsing
 
-# Returns a dictionary containing a list of term objects and a list of faculty objects
-def getTermsAndFaculties(username=getUser(), password=getPassword()):
+# Returns a list of term objects
+def getTerms(username=getUser(), password=getPassword()):
 	request = requests.get(index_url, auth=(username, password))
-	requestText = request.text
-	termSelection = re.findall(selection_type_regex.format('Term'), requestText)[0]
-	facultySelection = re.findall(selection_type_regex.format('Faculty'), requestText)[0]
-
+	termSelection = re.findall(selection_type_regex.format('Term'), request.text)[0]
 	terms = []
 	for termMatch in re.findall(selection_options_regex, termSelection):
 		terms.append({
 			'id': int(termMatch[0]),
 			'term': str(termMatch[1])
 		})
+	return terms
 
+# Returns a dictionary containing the faculties and dates for a given term
+def getFacultiesAndDates(term=1165, username=getUser(), password=getPassword()):
+	request = requests.post(index_url, data = {'Term':term,'Faculty':'80','Level':'-1'}, auth=(username, password))
+
+	facultySelection = re.findall(selection_type_regex.format('Faculty'), request.text)[0]
 	faculties = []
 	for facultyMatch in re.findall(selection_options_regex, facultySelection):
 		nameSplit = facultyMatch[1].split(' ')
 		if len(nameSplit) == 2:
 			faculties.append({
+				'term': term,
 				'id': int(facultyMatch[0]),
 				'faculty': str(nameSplit[0]),
 				'name': str(nameSplit[1])
 			})
 
-	return {
-		'terms': terms,
-		'faculties': faculties
-	}
-
-# Returns a list of date objects available for a given term
-def getDates(term=1165, username=getUser(), password=getPassword()):
-	request = requests.post(index_url, data = {'Term':term,'Faculty':'80','Level':'-1'}, auth=(username, password))
-	results = []
+	dates = []
 	for date in re.findall(dates_regex, request.text):
-		results.append({
+		dates.append({
 			'term': term,
 			'date' : int(date)
 		})
-	return results
+
+	return {
+		'faculties': faculties,
+		'dates': dates
+	}
 
 # Returns a list of employment objects for a given term, date, and faculty
 def getEmploymentStats(term=1165, date=20160519, faculty=80, username=getUser(), password=getPassword()):
@@ -78,6 +78,3 @@ def getEmploymentStats(term=1165, date=20160519, faculty=80, username=getUser(),
 			'unemployed': int(result[1])
 		})
 	return results
-
-
-### Database Operations
