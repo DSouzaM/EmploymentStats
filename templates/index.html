@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <title>title</title>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js" type="text/javascript"></script>
+    <base href="//127.0.0.1:5000/">
+  </head>
+  <body>
+  <br>
+  <select id="date">
+  {% for date in dates %}
+    <option value="{{ date.code }}">{{ date.label }}</option>
+  {% endfor %}
+  </select>
+  <br>
+  <button type="button" id="get_data_btn">Get Data</button>
+  <br>
+  <textarea id="text_area" rows="50" cols="100">
+  </textarea>
+  <script src="{{ url_for('static', filename='scripts/script.js') }}" type="text/javascript"></script>
+
+  </body>
+</html>

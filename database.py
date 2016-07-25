@@ -6,7 +6,6 @@ database_path = 'employment.sqlite'
 init_path = 'dbinit.sql'
 diff_path = 'diff.sql'
 
-
 ### Private Functions
 
 # Executes multi-line script from .sql file, handles creation and closing of connection
@@ -67,18 +66,47 @@ def getTermsMap():
 		cursor = connection.cursor()
 		cursor.execute('SELECT id,term FROM terms')
 		results = {}
-		for result 	in cursor.fetchall():
+		for result in cursor.fetchall():
 			results[result[0]] = str(result[1])
 		return results
 
-def getFacultiesMap():
+def getFacultiesMap(term=1165):
 	with sqlite3.connect(database_path) as connection:
 		cursor = connection.cursor()
-		cursor.execute('SELECT id,faculty,name FROM faculties')
+		cursor.execute('SELECT id,faculty,name FROM faculties WHERE term=?', (term,))
 		results = {}
 		for result in cursor.fetchall():
 			results[result[0]] = str(result[1] + ' ' + result[2])
 		return results
+
+def getDates(term=1165):
+	with sqlite3.connect(database_path) as connection:
+		cursor = connection.cursor()
+		cursor.execute('SELECT date FROM dates WHERE term=? ORDER BY date DESC', (term,))
+		results = []
+		for result in cursor.fetchall():
+			results.append(str(result[0]))
+		return results
+
+def getEmploymentStatsByDate(term, date, selection = []):
+	with sqlite3.connect(database_path) as connection:
+		cursor = connection.cursor()
+		cursor.execute('SELECT f.faculty, f.name,SUM(e.employed), SUM(e.unemployed) FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? AND e.date=? GROUP BY e.faculty', (term, date))
+		results = {}
+		for result in cursor.fetchall():
+			faculty = str(result[0])
+			program = str(result[1])
+			employed = str(result[2])
+			unemployed = str(result[3])
+
+			if faculty not in results:
+				results[faculty] = {}
+			results[faculty][program]={'employed':employed, 'unemployed':unemployed}
+		return results
+
+
+
+
 
 def dropTable(table):
 	with sqlite3.connect(database_path) as connection:
