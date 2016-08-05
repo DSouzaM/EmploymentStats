@@ -4,21 +4,49 @@
     <meta charset="UTF-8">
     <title>title</title>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.2.1/Chart.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" type="text/javascript"></script>
     <base href="//127.0.0.1:5000/">
   </head>
   <body>
-  <br>
-  <select id="date">
-  {% for date in dates %}
-    <option value="{{ date.code }}">{{ date.label }}</option>
-  {% endfor %}
+  <span>Show me employment</span>
+  <select id="display-type-select">
+    <option value="">-</option>
+    <option value="day">by day</option>
+    <option value="time">over time</option>
   </select>
+  <div class="data-selection" hidden>
+    <span>for</span>
+    <select id="data-type-select">
+      <option value="">-</option>
+      <option value="all">all programs</option>
+      <option value="faculty">each faculty</option>
+      <option value="specific">specific programs</option>
+    </select>
+  </div>
+  <div class="program-selection" hidden>
+    <span>:</span>
+    <select id="program-select">
+      <option value="">-</option>
+    {% for program in programs %}
+      <option value="{{ program.code }}">{{ program.label }}</option>
+    {% endfor %}
+    </select>
+  </div>
+  <div class="date-selection" hidden>
+    <span>on</span>
+    <select id="date-select">
+      <option value="">-</option>
+    {% for date in dates %}
+      <option value="{{ date.code }}">{{ date.label }}</option>
+    {% endfor %}
+    </select>
+  </div>
   <br>
   <button type="button" id="get_data_btn">Get Data</button>
   <br>
-  <textarea id="text_area" rows="50" cols="100">
-  </textarea>
+  <textarea id="text_area" rows="50" cols="100"></textarea>
+  <canvas id="chart"> </canvas>
   <script src="{{ url_for('static', filename='scripts/script.js') }}" type="text/javascript"></script>
-
   </body>
 </html>

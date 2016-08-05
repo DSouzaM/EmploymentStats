@@ -60,15 +60,18 @@ def _parseDate(dateCode):
 	return '{date} {month} {year}'.format(date=int(dateCode[6:8]), month=MONTHS[int(dateCode[4:6])], year=dateCode[0:4])
 
 def generateDateOptions(term):
-	dateCodes = database.getDates(TERM)
+	dateCodes = database.getDates(term)
 	dates= []
 	for dateCode in dateCodes:
 		dates.append({'code':dateCode, 'label':_parseDate(dateCode)})
 	return dates
 
+def generateProgramOptions(term):
+	return [{'code':'VPA SE', 'label':'VPA SE'},{'code':'MATH CS', 'label':'MATH CS'}]
+
 @app.route('/')
 def index():
-	return Response(render_template('index.html', dates=generateDateOptions(TERM)), mimetype='text/html')
+	return Response(render_template('index.html', dates=generateDateOptions(TERM), programs=generateProgramOptions(TERM)), mimetype='text/html')
 
 @app.route('/byDate', methods=['GET'])
 def getName():
