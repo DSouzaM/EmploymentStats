@@ -68,6 +68,7 @@ def generateDateOptions(term):
 
 def generateProgramOptions(term):
 	return [{'code':'VPA SE', 'label':'VPA SE'},{'code':'MATH CS', 'label':'MATH CS'}]
+	# todo pull program list from DB using faculty + program as label, numeric id as code
 
 @app.route('/')
 def index():

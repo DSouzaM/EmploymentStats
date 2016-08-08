@@ -9,40 +9,42 @@
     <base href="//127.0.0.1:5000/">
   </head>
   <body>
-  <span>Show me employment</span>
-  <select id="display-type-select">
-    <option value="">-</option>
-    <option value="day">by day</option>
-    <option value="time">over time</option>
-  </select>
-  <div class="data-selection" hidden>
-    <span>for</span>
-    <select id="data-type-select">
+  <form id="chart-data-options">
+    <span>Show me employment</span>
+    <select id="display-type-select" name="display">
       <option value="">-</option>
-      <option value="all">all programs</option>
-      <option value="faculty">each faculty</option>
-      <option value="specific">specific programs</option>
+      <option value="day">by day</option>
+      <option value="time">over time</option>
     </select>
-  </div>
-  <div class="program-selection" hidden>
-    <span>:</span>
-    <select id="program-select">
-      <option value="">-</option>
-    {% for program in programs %}
-      <option value="{{ program.code }}">{{ program.label }}</option>
-    {% endfor %}
-    </select>
-  </div>
-  <div class="date-selection" hidden>
-    <span>on</span>
-    <select id="date-select">
-      <option value="">-</option>
-    {% for date in dates %}
-      <option value="{{ date.code }}">{{ date.label }}</option>
-    {% endfor %}
-    </select>
-  </div>
-  <br>
+    <div class="grouping-selection" hidden>
+      <span>for</span>
+      <select id="grouping-select" name="grouping">
+        <option value="">-</option>
+        <option value="all">all programs</option>
+        <option value="faculty">each faculty</option>
+        <option value="specific">specific programs</option>
+      </select>
+    </div>
+    <div class="program-selection" hidden>
+      <span>:</span>
+      <select multiple id="program-select" name="program">
+        <option value="">-</option>
+      {% for program in programs %}
+        <option value="{{ program.code }}">{{ program.label }}</option>
+      {% endfor %}
+      </select>
+    </div>
+    <div class="date-selection" hidden>
+      <span>on</span>
+      <select id="date-select" name="date">
+        <option value="">-</option>
+      {% for date in dates %}
+        <option value="{{ date.code }}">{{ date.label }}</option>
+      {% endfor %}
+      </select>
+    </div>
+    <br>
+  </form>
   <button type="button" id="get_data_btn">Get Data</button>
   <br>
   <textarea id="text_area" rows="50" cols="100"></textarea>

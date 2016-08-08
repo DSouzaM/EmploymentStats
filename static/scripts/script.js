@@ -13,10 +13,10 @@ var customTooltips = function(tooltip) {
 		tooltipEl.css({
 			opacity: 0
 		});
-	$('.chartjs-wrap canvas').each(function(index, el) {
-	    $(el).css('cursor', 'default');
-	});
-	return;
+		$('.chartjs-wrap canvas').each(function(index, el) {
+		    $(el).css('cursor', 'default');
+		});
+		return;
 	}
 	$(this._chart.canvas).css('cursor', 'pointer');
 	// Set caret Position
@@ -64,7 +64,7 @@ function transformData(data) {
 	for (var facultyKey in data) {
 		if ($.inArray(facultyKey, excludedFaculties) == -1) { // not an exception
 			for (var programKey in data[facultyKey]) {
-				labels.push(facultyKey + " " + programKey);
+				labels.push(facultyKey + ' ' + programKey);
 				var dp = data[facultyKey][programKey];
 				var employed = parseInt(dp.employed);
 				var unemployed = parseInt(dp.unemployed);
@@ -88,35 +88,77 @@ function transformData(data) {
 	}	
 }
 
-function updateDataSelector(displayType) {
-	var $dataDiv = $('.data-selection');
-	var $dataSelect = $dataDiv.find('#data-type-select');
+// Resets selector for grouping type and adds "All Faculty" option if enabled for the given display type
+function updateGroupingSelector() {
+	var $displaySelect = $('#display-type-select');
+	var displayType = $displaySelect.val();
+	var $groupingDiv = $('.grouping-selection');
+	var $groupingSelect = $groupingDiv.find('#grouping-select');
 
-	$dataDiv.hide();
-	if (displayType === "") {
+	$groupingSelect.val('');
+	$groupingDiv.hide();
+	if (displayType === '') {
 		return;
 	}
-	$dataSelect.val("");
-	var $allFacultiesOption = $dataSelect.find('option[value="all"]')
+
+
+	var $allFacultiesOption = $groupingSelect.find('option[value="all"]')
 	if (displayType === 'time') {
+		if ($groupingSelect.val() === 'all') {
+			$groupingSelect.val('');
+		}
 		$allFacultiesOption.hide();
 	} else {
 		$allFacultiesOption.show();
 	}
-	$dataDiv.show();
+	$groupingDiv.show();
 }
 
+// Resets selector for selecting specific programs
 function updateSpecificProgramSelector() {
+	var $groupingSelect = $('#grouping-select');
+	var groupingType = $groupingSelect.val();
 	var $programDiv = $('.program-selection');
 	var $programSelect = $programDiv.find('#program-select');
 
-	$programDiv.hide();
 	$programSelect.val('');
+
+	if (groupingType !== 'specific') {
+		$programDiv.hide();
+		return;
+	}
+
 	$programDiv.show();
 }
 
 function updateDateSelector(){
-	console.log('updateDateSelector()');
+	var $displaySelect = $('#display-type-select');
+	var displayType = $displaySelect.val();
+	var $groupingSelect = $('#grouping-select');
+	var groupingType = $groupingSelect.val();
+	var $programSelect = $('#program-select');
+	var programs = _.compact($programSelect.val());
+
+	var $dateDiv = $('.date-selection');
+	var $dateSelect = $dateDiv.find('#date-select');
+
+	$dateSelect.val('');
+
+	if(displayType !== 'day' || groupingType === '' || (groupingType === 'specific' && _.isEmpty(programs))) {
+		$dateDiv.hide();
+	} else {
+		$dateDiv.show();
+	}
+}
+
+// Returns whether or not the serialized query string is valid
+function isValidQuery(){
+	var displayType = $('#display-type-select').val();
+	var groupingType = $('#grouping-select').val();
+	var programs = _.compact($('#program-select').val());
+	var date = $('#date-select').val();
+
+	return ((displayType === 'day' && date !== '') || (displayType === 'time' && (groupingType === 'faculty' || !_.isEmpty(programs))));
 }
 
 $(function() {
@@ -124,7 +166,7 @@ $(function() {
 	var transformedData = {};
 
 	$('#get_data_btn').click(function() {
-		$.ajax('http:' + base + 'byDate?date=' + $('#date').val(), {
+		$.ajax('http:' + base + 'byDate?date=' + $('#date-select').val(), {
 			method:'GET', 
 			success: function(data) {
 				//console.log(data);
@@ -136,26 +178,23 @@ $(function() {
 		});
 	});
 
-	$('#display-type-select').on('change', function() {
-		updateDataSelector($(this).val());
-	})
-
-	$('#data-type-select').on('change', function() {
-		var displayType = $('#display-type-select').val();
-		var dataType = $(this).val();
-		if (displayType === 'day') {
-			if (dataType !== '') {
-				if (dataType === 'specific') {
-					updateSpecificProgramSelector();
-				}
+	$('#chart-data-options select').on('change', function() {
+		switch(this.id) {
+			case 'display-type-select':
+				updateGroupingSelector();
+			case 'grouping-select':
+				updateSpecificProgramSelector();
+			case 'program-select':
 				updateDateSelector();
-			} 
+			case 'date-select':
+				if (isValidQuery()) {
+					console.log('Form is ready to be sent to the backend: ' + $('form select').serialize());
+				}
+
+			default:
+				break;
 		}
-	})
-
-
-
-
+	});
 
 	/*var myChart = new Chart($("#chart"), {
 		type:'bar',
