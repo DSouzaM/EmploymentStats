@@ -61,15 +61,18 @@ def _parseDate(dateCode):
 
 def generateDateOptions(term):
 	dateCodes = database.getDates(term)
-	dates= []
+	dates = []
 	for dateCode in dateCodes:
 		dates.append({'code':dateCode, 'label':_parseDate(dateCode)})
 	return dates
 
 def generateProgramOptions(term):
-	return [{'code':'VPA SE', 'label':'VPA SE'},{'code':'MATH CS', 'label':'MATH CS'}]
-	# todo pull program list from DB using faculty + program as label, numeric id as code
-
+	facultiesMap = database.getFacultiesMap(term)
+	options = []
+	for code in facultiesMap:
+		options.append({'code':code, 'label':facultiesMap[code]})
+	return options
+	
 @app.route('/')
 def index():
 	return Response(render_template('index.html', dates=generateDateOptions(TERM), programs=generateProgramOptions(TERM)), mimetype='text/html')

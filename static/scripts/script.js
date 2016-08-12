@@ -34,9 +34,7 @@ var columnChartDefaults = {
 function getDateByCode(code) {
 	return $('#date-select').children('[value='+code+']').text();
 }
-
-function generateBarChartOptions(data, selections) {
-	var options = $.extend(true, {}, columnChartDefaults);
+function formatBarChartData(data) {
 	data = _.sortBy(data, 'employed');
 	var programs = [];
 	var numEmployed = [];
@@ -45,20 +43,51 @@ function generateBarChartOptions(data, selections) {
 		programs.push(entry.faculty + ' ' + entry.program);
 		numEmployed.push(entry.employed);
 		pctEmployed.push(Math.round((entry.employed/(entry.employed + entry.unemployed))*10000)/100);
-	})
+	});
+	return {
+		programs: programs,
+		numEmployed: numEmployed,
+		pctEmployed: pctEmployed
+	};
+}
+function formatGroupedBarChartData(data) {
+
+}
+
+
+function generateBarChartOptions(data, selections) {
+	var options = $.extend(true, {}, columnChartDefaults);
 	options.title.text = 'Employment on ' + getDateByCode(selections.date);
-	options.xAxis.categories = programs;
+	
+	var formatted;
+	switch(selections.groupingType) {
+		case 'all':
+			formatted = formatBarChartData(data);
+			break;
+		case 'faculty':
+			formatted = formatGroupedBarChartData(data);
+			break;
+		case 'specific':
+			var specificData = data.filter(function(entry) {
+				return _.contains(selections.programs, entry.id);
+			});
+			formatted = formatBarChartData(specificData);
+	}
+
+
+	
+	options.xAxis.categories = formatted.programs;
 	options.series.push({
 		name: '# employed',
 		color: 'rgba(0,210,255,1)',
-		data: numEmployed,
+		data: formatted.numEmployed,
 		yAxis: 0,
 		pointPadding: 0.2
 	});
 	options.series.push({
 		name: '% employed',
 		color: 'rgba(148,236,255,0.6)',
-		data: pctEmployed,
+		data: formatted.pctEmployed,
 		yAxis: 1
 	});
 	return options;

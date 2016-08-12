@@ -105,7 +105,7 @@ def getEmploymentStatsByDate(term, date, selection = []):
 					'program': str(result[1]),
 					'employed': result[2],
 					'unemployed': result[3],
-					'id': result[4]
+					'id': str(result[4])
 					})
 
 		return results
