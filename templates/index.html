@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>title</title>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js" type="text/javascript"></script>
-    <script src="//cdnjs.cloudflare.com/ajax/libs/Chart.js/2.2.1/Chart.js" type="text/javascript"></script>
+    <script src="//code.highcharts.com/highcharts.js" type="text/javascript"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" type="text/javascript"></script>
     <base href="//127.0.0.1:5000/">
   </head>
@@ -45,10 +45,8 @@
     </div>
     <br>
   </form>
-  <button type="button" id="get_data_btn">Get Data</button>
   <br>
-  <textarea id="text_area" rows="50" cols="100"></textarea>
-  <canvas id="chart"> </canvas>
+  <div id="chart"></div>
   <script src="{{ url_for('static', filename='scripts/script.js') }}" type="text/javascript"></script>
   </body>
 </html>

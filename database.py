@@ -6,6 +6,11 @@ database_path = 'employment.sqlite'
 init_path = 'dbinit.sql'
 diff_path = 'diff.sql'
 
+
+### Constants
+
+excluded_faculties = ['ALL']
+
 ### Private Functions
 
 # Executes multi-line script from .sql file, handles creation and closing of connection
@@ -91,21 +96,19 @@ def getDates(term=1165):
 def getEmploymentStatsByDate(term, date, selection = []):
 	with sqlite3.connect(database_path) as connection:
 		cursor = connection.cursor()
-		cursor.execute('SELECT f.faculty, f.name,SUM(e.employed), SUM(e.unemployed) FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? AND e.date=? GROUP BY e.faculty', (term, date))
-		results = {}
+		cursor.execute('SELECT f.faculty, f.name,SUM(e.employed), SUM(e.unemployed), f.id FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? AND e.date=? GROUP BY e.faculty', (term, date))
+		results = []
 		for result in cursor.fetchall():
-			faculty = str(result[0])
-			program = str(result[1])
-			employed = str(result[2])
-			unemployed = str(result[3])
+			if str(result[0]) not in excluded_faculties:
+				results.append({
+					'faculty': str(result[0]),
+					'program': str(result[1]),
+					'employed': result[2],
+					'unemployed': result[3],
+					'id': result[4]
+					})
 
-			if faculty not in results:
-				results[faculty] = {}
-			results[faculty][program]={'employed':employed, 'unemployed':unemployed}
 		return results
-
-
-
 
 
 def dropTable(table):
