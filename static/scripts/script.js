@@ -1,11 +1,27 @@
 var excludedFaculties = ['ALL'];
-// need to provide xAxis categories and series data.
 var columnChartDefaults = {
 	chart: {
-		type: 'column'
+		type: 'column',
+		events: {
+			drilldown: function(e) {
+	            var chart = this,
+	            drilldowns = chart.userOptions.drilldown.series,
+	            series = [];
+	            chart.xAxis[0].names = [];
+	            e.preventDefault();
+	            Highcharts.each(drilldowns, function(drilldownSeries, i) {
+	                if (drilldownSeries.id === e.point.drilldown) {
+	                    chart.addSingleSeriesAsDrilldown(e.point, drilldownSeries);
+	                }
+	            });
+	            chart.applyDrilldown();
+	        }
+		}
 	},
 	title: {},
-	xAxis: {},
+	xAxis: {
+		type: 'category'
+	},
 	yAxis: [{
 		title: {
 			text: 'Number of students employed'
@@ -27,75 +43,127 @@ var columnChartDefaults = {
 			shadow: false
 		}
 	},
-	series: []
+	series: [],
+	drilldown: {}
 };
 
 
 function getDateByCode(code) {
 	return $('#date-select').children('[value='+code+']').text();
 }
-function formatBarChartData(data) {
-	data = _.sortBy(data, 'employed');
-	var programs = [];
-	var numEmployed = [];
-	var pctEmployed = [];
-	data.forEach(function(entry) {
-		programs.push(entry.faculty + ' ' + entry.program);
-		numEmployed.push(entry.employed);
-		pctEmployed.push(Math.round((entry.employed/(entry.employed + entry.unemployed))*10000)/100);
-	});
-	return {
-		programs: programs,
-		numEmployed: numEmployed,
-		pctEmployed: pctEmployed
-	};
+function formatPercentage(num, denom) {
+	return Math.round((num/denom)*10000)/100;
 }
-function formatGroupedBarChartData(data) {
-
-}
-
-
-function generateBarChartOptions(data, selections) {
+function formatBarChartOptions(data, selections) {
 	var options = $.extend(true, {}, columnChartDefaults);
 	options.title.text = 'Employment on ' + getDateByCode(selections.date);
-	
-	var formatted;
-	switch(selections.groupingType) {
-		case 'all':
-			formatted = formatBarChartData(data);
-			break;
-		case 'faculty':
-			formatted = formatGroupedBarChartData(data);
-			break;
-		case 'specific':
-			var specificData = data.filter(function(entry) {
-				return _.contains(selections.programs, entry.id);
-			});
-			formatted = formatBarChartData(specificData);
+	var filter = selections.programs;
+
+	var entries = [];
+	for (facultyName in data) {
+		var faculty = data[facultyName];
+		faculty.programs.forEach(function(entry) {
+			if (_.isEmpty(filter) || _.contains(filter, entry.id)){
+				entries.push({
+					name: entry.name,
+					numEmployed: entry.employed,
+					pctEmployed: formatPercentage(entry.employed, entry.employed + entry.unemployed)
+				});
+			}
+		});
 	}
+	entries = _.sortBy(entries, 'numEmployed');
 
-
-	
-	options.xAxis.categories = formatted.programs;
+	options.xAxis.categories = _.pluck(entries, 'name');
 	options.series.push({
 		name: '# employed',
 		color: 'rgba(0,210,255,1)',
-		data: formatted.numEmployed,
+		data: _.pluck(entries, 'numEmployed'),
 		yAxis: 0,
-		pointPadding: 0.2
+		pointPadding: 0.15
 	});
 	options.series.push({
 		name: '% employed',
 		color: 'rgba(148,236,255,0.6)',
-		data: formatted.pctEmployed,
+		data: _.pluck(entries, 'pctEmployed'),
 		yAxis: 1
 	});
 	return options;
 }
 
+function formatGroupedBarChartOptions(data, selections) {
+	var options = $.extend(true, {}, columnChartDefaults);
+	options.title.text = 'Employment on ' + getDateByCode(selections.date);
+
+	var sortedFaculties = _.sortBy(data, 'employed');
+	var entries = [];
+	var drilldownSeries = [];
+	sortedFaculties.forEach(function(faculty) {
+		// aggregate Faculty objects
+		entries.push({
+			numEmployed: {y: faculty.employed, name: faculty.name, drilldown: faculty.name},
+			pctEmployed: {y: formatPercentage(faculty.employed, faculty.employed + faculty.unemployed),  name: faculty.name, drilldown: faculty.name}
+		});
+
+		// aggregate Programs objects for drilldown
+		var programs = [];
+		faculty.programs.forEach(function(program) {
+			programs.push({
+				name: program.name,
+				numEmployed: program.employed,
+				pctEmployed: formatPercentage(program.employed, program.employed + program.unemployed)
+			})
+		});
+		var sortedPrograms = _.sortBy(programs, 'numEmployed');
+		drilldownSeries.push({
+			id: faculty.name,
+			type: 'column',
+			name: '# employed',
+			color: 'rgba(0,210,255,1)',
+			data: _.map(sortedPrograms, function(program) {
+				return [program.name, program.numEmployed];
+			}),
+			yAxis: 0,
+			pointPadding: 0.15
+		});
+		drilldownSeries.push({
+			id: faculty.name,
+			type: 'column',
+			name: '% employed',
+			color: 'rgba(148,236,255,0.6)',
+			data: _.map(sortedPrograms, function(program) {
+				return [program.name, program.pctEmployed];
+			}),
+			yAxis: 1
+		});
+	});
+	//options.xAxis.categories = _.pluck(entries, 'name');
+
+	options.series.push({
+		name: '# employed',
+		color: 'rgba(0,210,255,1)',
+		data: _.pluck(entries, 'numEmployed'),
+		yAxis: 0,
+		pointPadding: 0.15
+	});
+	options.series.push({
+		name: '% employed',
+		color: 'rgba(148,236,255,0.6)',
+		data: _.pluck(entries, 'pctEmployed'),
+		yAxis: 1
+	});
+	options.drilldown.series = drilldownSeries;
+	return options;
+}
+
+
+
 function generateChartOptions(data, selections) {
 	if (selections.displayType === 'day') {
-		return generateBarChartOptions(data, selections);
+		if (selections.groupingType === 'faculty') {
+			return formatGroupedBarChartOptions(data, selections);
+		}
+		return formatBarChartOptions(data, selections);
 	} else {
 		// generate line chart options
 	}

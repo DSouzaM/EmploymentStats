@@ -9,7 +9,9 @@ diff_path = 'diff.sql'
 
 ### Constants
 
-excluded_faculties = ['ALL']
+excluded_faculties = ['ALL', 'UAE', 'TEACH']
+replacement_faculties = {'CA':'MATH', 'ARCH':'ENG'}
+program_specific_replacement_faculties = {'SE': 'ENG', 'CFM': 'MATH'}
 
 ### Private Functions
 
@@ -93,19 +95,41 @@ def getDates(term=1165):
 			results.append(str(result[0]))
 		return results
 
-def getEmploymentStatsByDate(term, date, selection = []):
+def getEmploymentStatsByDate(term, date):
 	with sqlite3.connect(database_path) as connection:
 		cursor = connection.cursor()
-		cursor.execute('SELECT f.faculty, f.name,SUM(e.employed), SUM(e.unemployed), f.id FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? AND e.date=? GROUP BY e.faculty', (term, date))
-		results = []
+		cursor.execute('SELECT f.faculty, f.name, SUM(e.employed), SUM(e.unemployed), f.id FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? AND e.date=? GROUP BY e.faculty', (term, date))
+		results = {}
 		for result in cursor.fetchall():
-			if str(result[0]) not in excluded_faculties:
-				results.append({
-					'faculty': str(result[0]),
-					'program': str(result[1]),
-					'employed': result[2],
-					'unemployed': result[3],
-					'id': str(result[4])
+			facultyName = str(result[0])
+			program = str(result[1])
+			employed = result[2]
+			unemployed = result[3]
+			programId = str(result[4])
+
+			# custom override
+			faculty = facultyName
+			if facultyName in replacement_faculties:
+				faculty = replacement_faculties[facultyName]
+			if program in program_specific_replacement_faculties:
+				faculty = program_specific_replacement_faculties[program]
+
+
+			if faculty not in excluded_faculties:
+				if faculty not in results:
+					results[faculty] = {
+						'name': faculty,
+						'programs': [],
+						'employed': 0,
+						'unemployed': 0
+					}
+				results[faculty]['employed'] += employed
+				results[faculty]['unemployed'] += unemployed
+				results[faculty]['programs'].append({
+					'name': facultyName + ' ' + program,
+					'employed': employed,
+					'unemployed': unemployed,
+					'id': programId
 					})
 
 		return results
