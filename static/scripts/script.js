@@ -1,4 +1,31 @@
-var excludedFaculties = ['ALL'];
+var colours = {
+	AHS: {
+		primary: 'rgba(0,127,138,1)',
+		secondary: 'rgba(0,154,166,0.5)'
+	},
+	ARTS: {
+		primary: 'rgba(172,97,0,1)',
+		secondary: 'rgba(233,131,0,0.5)'
+	},
+	ENG: {
+		primary: 'rgba(87,6,140,1)',
+		secondary: 'rgba(204,170,255,0.5)'
+	},
+	ENV: {
+		primary: 'rgba(116,120,0,1)',
+		secondary: 'rgba(182,191,0,0.5)'
+	},
+	MATH: {
+		primary: 'rgba(224,36,154,1)',
+		secondary: 'rgba(255,136,221,0.5)'
+	},
+	SCI: {
+		primary: 'rgba(0,115,207,1)',
+		secondary: 'rgba(119,187,255,0.5)'
+	}
+}
+// colours referenced from https://uwaterloo.ca/brand-guidelines-and-tools/visual-identity/digital-colour-palette
+
 var columnChartDefaults = {
 	chart: {
 		type: 'column',
@@ -18,7 +45,13 @@ var columnChartDefaults = {
 	        }
 		}
 	},
+	lang: {
+		drillUpText: 'Return to Faculty view'
+	},
 	title: {},
+	legend: {
+		enabled: false
+	},
 	xAxis: {
 		type: 'category'
 	},
@@ -35,7 +68,10 @@ var columnChartDefaults = {
 		opposite: true
 	}],
 	tooltip: {
-		shared: true
+		shared: true,
+		formatter: function() {
+			return '<b>' + this.points[0].key + '</b><br>' + this.points[0].y + ' students employed (' + this.points[1].y + '%)';
+		}
 	},
 	plotOptions: {
 		column: {
@@ -44,7 +80,16 @@ var columnChartDefaults = {
 		}
 	},
 	series: [],
-	drilldown: {}
+	drilldown: {
+		drillUpButton: {
+                relativeTo: 'spacingBox',
+                position: {
+                    y: 0,
+                    x: 0
+                }
+            }
+	},
+	credits: false
 };
 
 
@@ -66,25 +111,25 @@ function formatBarChartOptions(data, selections) {
 			if (_.isEmpty(filter) || _.contains(filter, entry.id)){
 				entries.push({
 					name: entry.name,
-					numEmployed: entry.employed,
-					pctEmployed: formatPercentage(entry.employed, entry.employed + entry.unemployed)
+					numEmployed: {y: entry.employed, color: colours[facultyName].primary},
+					pctEmployed: {y: formatPercentage(entry.employed, entry.employed + entry.unemployed), color: colours[facultyName].secondary}
 				});
 			}
 		});
 	}
-	entries = _.sortBy(entries, 'numEmployed');
+	entries = _.sortBy(entries, function(entry) {
+		return entry.numEmployed.y;
+	});
 
 	options.xAxis.categories = _.pluck(entries, 'name');
 	options.series.push({
 		name: '# employed',
-		color: 'rgba(0,210,255,1)',
 		data: _.pluck(entries, 'numEmployed'),
 		yAxis: 0,
 		pointPadding: 0.15
 	});
 	options.series.push({
 		name: '% employed',
-		color: 'rgba(148,236,255,0.6)',
 		data: _.pluck(entries, 'pctEmployed'),
 		yAxis: 1
 	});
@@ -101,8 +146,18 @@ function formatGroupedBarChartOptions(data, selections) {
 	sortedFaculties.forEach(function(faculty) {
 		// aggregate Faculty objects
 		entries.push({
-			numEmployed: {y: faculty.employed, name: faculty.name, drilldown: faculty.name},
-			pctEmployed: {y: formatPercentage(faculty.employed, faculty.employed + faculty.unemployed),  name: faculty.name, drilldown: faculty.name}
+			numEmployed: {
+				y: faculty.employed,
+				color: colours[faculty.name].primary,
+				name: faculty.name,
+				drilldown: faculty.name
+			},
+			pctEmployed: {
+				y: formatPercentage(faculty.employed, faculty.employed + faculty.unemployed),
+				color: colours[faculty.name].secondary,
+				name: faculty.name,
+				drilldown: faculty.name
+			}
 		});
 
 		// aggregate Programs objects for drilldown
@@ -115,13 +170,17 @@ function formatGroupedBarChartOptions(data, selections) {
 			})
 		});
 		var sortedPrograms = _.sortBy(programs, 'numEmployed');
+		var facultyColours = colours[faculty.name];
 		drilldownSeries.push({
 			id: faculty.name,
 			type: 'column',
 			name: '# employed',
-			color: 'rgba(0,210,255,1)',
 			data: _.map(sortedPrograms, function(program) {
-				return [program.name, program.numEmployed];
+				return {
+					name: program.name,
+					y: program.numEmployed,
+					color: facultyColours.primary
+				};
 			}),
 			yAxis: 0,
 			pointPadding: 0.15
@@ -130,25 +189,25 @@ function formatGroupedBarChartOptions(data, selections) {
 			id: faculty.name,
 			type: 'column',
 			name: '% employed',
-			color: 'rgba(148,236,255,0.6)',
 			data: _.map(sortedPrograms, function(program) {
-				return [program.name, program.pctEmployed];
+				return {
+					name: program.name,
+					y: program.pctEmployed,
+					color: facultyColours.secondary
+				};
 			}),
 			yAxis: 1
 		});
 	});
-	//options.xAxis.categories = _.pluck(entries, 'name');
 
 	options.series.push({
 		name: '# employed',
-		color: 'rgba(0,210,255,1)',
 		data: _.pluck(entries, 'numEmployed'),
 		yAxis: 0,
 		pointPadding: 0.15
 	});
 	options.series.push({
 		name: '% employed',
-		color: 'rgba(148,236,255,0.6)',
 		data: _.pluck(entries, 'pctEmployed'),
 		yAxis: 1
 	});
@@ -201,7 +260,7 @@ function updateSpecificProgramSelector() {
 	var $programDiv = $('.program-selection');
 	var $programSelect = $programDiv.find('#program-select');
 
-	$programSelect.val('');
+	$programSelect.val('').trigger('chosen:updated');
 
 	if (groupingType !== 'specific') {
 		$programDiv.hide();
@@ -209,6 +268,7 @@ function updateSpecificProgramSelector() {
 	}
 
 	$programDiv.show();
+	$programSelect.chosen();
 }
 
 function updateDateSelector(){
@@ -263,7 +323,6 @@ function updateChart() {
 }
 
 $(function() {
-
 	$('#chart-data-options select').on('change', function() {
 		switch(this.id) {
 			case 'display-type-select':

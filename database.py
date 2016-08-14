@@ -77,13 +77,14 @@ def getTermsMap():
 			results[result[0]] = str(result[1])
 		return results
 
-def getFacultiesMap(term=1165):
+def getFacultiesMap(term=1165, removeExcluded=False):
 	with sqlite3.connect(database_path) as connection:
 		cursor = connection.cursor()
 		cursor.execute('SELECT id,faculty,name FROM faculties WHERE term=?', (term,))
 		results = {}
 		for result in cursor.fetchall():
-			results[result[0]] = str(result[1] + ' ' + result[2])
+			if not (removeExcluded and str(result[1]) in excluded_faculties):
+				results[result[0]] = str(result[1] + ' ' + result[2])
 		return results
 
 def getDates(term=1165):

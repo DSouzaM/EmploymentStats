@@ -67,7 +67,7 @@ def generateDateOptions(term):
 	return dates
 
 def generateProgramOptions(term):
-	facultiesMap = database.getFacultiesMap(term)
+	facultiesMap = database.getFacultiesMap(term, True)
 	options = []
 	for code in facultiesMap:
 		options.append({'code':code, 'label':facultiesMap[code]})
