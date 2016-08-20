@@ -4,10 +4,19 @@ from flask import Flask, request, render_template, Response
 import scrape, database
 import sys, json
 
+
 TERM = 1165
 MONTHS = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
+excluded_faculties = ['ALL', 'UAE', 'TEACH']
+replacement_faculties = {'CA':'MATH', 'ARCH':'ENG'}
+program_specific_replacement_faculties = {'SE': 'ENG', 'CFM': 'MATH'}
+
+def _parseDate(dateCode):
+	return '{date} {month} {year}'.format(date=int(dateCode[6:8]), month=MONTHS[int(dateCode[4:6])], year=dateCode[0:4])
+
 
 app = Flask(__name__)
+### Updating ### For scraping new data
 
 def update():
 	print('Initializing database...')
@@ -39,13 +48,15 @@ def update():
 
 	print('{count} records to retrieve. Starting retrieval...'.format(count=count))
 	employment = []
-	termsMap = database.getTermsMap()
-	facultiesMap = database.getFacultiesMap()
+	termsMap = processTerms(database.getTerms())
+	facultiesMap = {}
+	for termKey in termsMap:
+		facultiesMap[termKey] = processFaculties(database.getFaculties(termKey))
 	current = 1
 	for entry in missingStats:
 		delay = random.random()*.5
 		time.sleep(delay)
-		print('({percent:5.2f}%):{current}/{count} - Fetching info on {faculty} from {date} in {term}...'.format(percent=float(current)/count * 100, current=current, count=count, faculty=facultiesMap[entry[2]], date=str(entry[1]), term=termsMap[entry[0]]))
+		print('({percent:5.2f}%):{current}/{count} - Fetching info on {faculty} from {date} in {term}...'.format(percent=float(current)/count * 100, current=current, count=count, faculty=facultiesMap[entry[0]][entry[2]], date=str(entry[1]), term=termsMap[entry[0]]))
 		employment.extend(scrape.getEmploymentStats(*entry))
 		if current % 25 == 0:
 			print('Saving new entries...')
@@ -56,28 +67,88 @@ def update():
 	
 	print('Update complete.')
 
-def _parseDate(dateCode):
-	return '{date} {month} {year}'.format(date=int(dateCode[6:8]), month=MONTHS[int(dateCode[4:6])], year=dateCode[0:4])
+
+### Processing ### Translate database results into usable values
+
+def processTerms(terms):
+	results = {}
+	for term in terms:
+		results[term[0]] = str(term[1])
+	return results
+
+def processFaculties(faculties):
+	results = {}
+	for faculty in faculties:
+		if not (str(faculty[1]) in excluded_faculties):
+			results[faculty[0]] = str(faculty[1] + ' ' + faculty[2])
+	return results
+
+def processDates(dates):
+	results = []
+	for date in dates:
+		results.append(str(date[0]))
+	return results
+
+def processEmploymentStats(employment):
+	results = {}
+	for dbResult in employment:
+		facultyName = str(dbResult[0])
+		program = str(dbResult[1])
+		employed = dbResult[2]
+		unemployed = dbResult[3]
+		programId = str(dbResult[4])
+
+		# custom override
+		faculty = facultyName
+		if facultyName in replacement_faculties:
+			faculty = replacement_faculties[facultyName]
+		if program in program_specific_replacement_faculties:
+			faculty = program_specific_replacement_faculties[program]
+
+		if faculty not in excluded_faculties:
+			if faculty not in results:
+				results[faculty] = {
+					'name': faculty,
+					'programs': [],
+					'employed': 0,
+					'unemployed': 0
+				}
+			results[faculty]['employed'] += employed
+			results[faculty]['unemployed'] += unemployed
+			results[faculty]['programs'].append({
+				'name': facultyName + ' ' + program,
+				'employed': employed,
+				'unemployed': unemployed,
+				'id': programId
+				})
+	return results
+
+### Generation ### Create objects and lists directly used for templates and charting
 
 def generateDateOptions(term):
-	dateCodes = database.getDates(term)
+	dateCodes = processDates(database.getDates(term))
 	dates = []
 	for dateCode in dateCodes:
 		dates.append({'code':dateCode, 'label':_parseDate(dateCode)})
 	return dates
 
 def generateProgramOptions(term):
-	facultiesMap = database.getFacultiesMap(term, True)
+	facultiesMap = processFaculties(database.getFaculties(term))
 	options = []
 	for code in facultiesMap:
 		options.append({'code':code, 'label':facultiesMap[code]})
 	return options
 	
+
+### Routing ###
+
 @app.route('/')
 def index():
 	return Response(render_template('index.html', dates=generateDateOptions(TERM), programs=generateProgramOptions(TERM)), mimetype='text/html')
 
 @app.route('/byDate', methods=['GET'])
-def getName():
-	result = database.getEmploymentStatsByDate(1165, request.args.get('date'))
+def getDataByDate():
+	dbResult = database.getEmploymentStatsByDate(1165, request.args.get('date'))
+	result = processEmploymentStats(dbResult)
+
 	return Response(json.dumps(result), mimetype='application/json')
