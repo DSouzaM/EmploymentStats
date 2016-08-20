@@ -93,17 +93,60 @@ var columnChartDefaults = {
 };
 
 
+var lineChartDefaults = {
+	chart: {
+		type: 'line'
+	},
+	title: {
+		text: 'Employment over time'
+	},
+	legend: {
+		enabled: false
+	},
+	xAxis: {},
+	yAxis: {
+		title: {
+			text: 'Number of students employed'
+		}
+	},
+	series: [],
+
+	credits: false
+};
+
 function getDateByCode(code) {
 	return $('#date-select').children('[value='+code+']').text();
 }
 function formatPercentage(num, denom) {
 	return Math.round((num/denom)*10000)/100;
 }
+
+
+/*
+Bar chart data object format:
+{
+	faculty: {
+		employed: int,
+		unemployed: int,
+		name: string,
+		programs: [
+			{
+					employed: int,
+					unemployed: int,
+					name: string,
+					id: string
+			}, ...
+		]
+	}, ...
+}
+*/
+
 function formatBarChartOptions(data, selections) {
 	var options = $.extend(true, {}, columnChartDefaults);
 	options.title.text = 'Employment on ' + getDateByCode(selections.date);
 	var filter = selections.programs;
 
+	// Iterate over the programs within each faculty, and grab the data
 	var entries = [];
 	for (facultyName in data) {
 		var faculty = data[facultyName];
@@ -141,11 +184,12 @@ function formatGroupedBarChartOptions(data, selections) {
 	options.title.text = 'Employment on ' + getDateByCode(selections.date);
 
 	var sortedFaculties = _.sortBy(data, 'employed');
-	var entries = [];
+	var facultySeries = [];
 	var drilldownSeries = [];
+	// Iterate over each faculty
 	sortedFaculties.forEach(function(faculty) {
-		// aggregate Faculty objects
-		entries.push({
+		// Add faculty-level series info
+		facultySeries.push({
 			numEmployed: {
 				y: faculty.employed,
 				color: colours[faculty.name].primary,
@@ -160,8 +204,9 @@ function formatGroupedBarChartOptions(data, selections) {
 			}
 		});
 
-		// aggregate Programs objects for drilldown
+		// Add program-level series info
 		var programs = [];
+		// Store programs in intermediate object so they can be sorted after being built
 		faculty.programs.forEach(function(program) {
 			programs.push({
 				name: program.name,
@@ -202,19 +247,90 @@ function formatGroupedBarChartOptions(data, selections) {
 
 	options.series.push({
 		name: '# employed',
-		data: _.pluck(entries, 'numEmployed'),
+		data: _.pluck(facultySeries, 'numEmployed'),
 		yAxis: 0,
 		pointPadding: 0.15
 	});
 	options.series.push({
 		name: '% employed',
-		data: _.pluck(entries, 'pctEmployed'),
+		data: _.pluck(facultySeries, 'pctEmployed'),
 		yAxis: 1
 	});
 	options.drilldown.series = drilldownSeries;
 	return options;
 }
 
+function formatLineChartOptions(data, selections) {
+	var options = $.extend(true, {}, lineChartDefaults);
+	//var dateLabels = [];
+	var filter = selections.programs;
+	var programSeries = {};
+
+	// iterate over each faculty object
+	for (facultyName in data) {
+		faculty = data[facultyName]
+		// iterate over each date within faculty object
+		for (dateCode in faculty) {
+			var date = faculty[dateCode]
+			// for each program within this faculty on a given date
+			date.programs.forEach(function(program) {
+				var programName = program.name;
+				if (_.isEmpty(filter) || _.contains(filter, program.id)) {
+					// if series is undefined for this program, create it
+					if (_.isUndefined(programSeries[programName])) {
+						programSeries[programName] = {
+							data: [],
+							name: programName,
+							color:colours[facultyName].secondary,
+							marker: {
+								'symbol': 'circle'
+							}
+						}
+					}
+					// add a new value to the program series for this date
+					programSeries[programName].data.push({
+						y: program.employed,
+						color: colours[facultyName].primary
+					});
+				}
+			});
+		}
+	}
+
+	// now, we have the data we want. simply add the series to options
+	for (programName in programSeries) {
+		options.series.push(programSeries[programName]);
+	}
+
+	return options;
+}
+
+function formatGroupedLineChartOptions(data, selections) {
+	var options = $.extend(true, {}, lineChartDefaults);
+	var dateLabels = [];
+	for (facultyName in data) {
+		var seriesData = [];
+		faculty = data[facultyName]
+		for (dateCode in faculty) {
+			var date = faculty[dateCode]
+			seriesData.push({
+				y: date.employed,
+				color: colours[facultyName].primary
+			});
+		}
+		options.series.push({
+			color: colours[facultyName].secondary,
+			marker: {
+				symbol: 'circle'
+			},
+			name: facultyName,
+			data: seriesData
+		});
+		dateLabels = _.map(_.keys(faculty), getDateByCode);
+	}
+	options.xAxis.categories = dateLabels;
+	return options;
+}
 
 
 function generateChartOptions(data, selections) {
@@ -224,7 +340,7 @@ function generateChartOptions(data, selections) {
 		}
 		return formatBarChartOptions(data, selections);
 	} else {
-		// generate line chart options
+		return formatLineChartOptions(data, selections);
 	}
 }
 
@@ -313,13 +429,23 @@ function isValidQuery(){
 function updateChart() {
 	var base = $('head base').attr('href');
 	var selections = getSelections();
-	$.ajax('http:' + base + 'byDate?date=' + selections.date, {
-		method:'GET',
-		success: $.proxy(function(data) {
-			var options;
-			$('#chart').highcharts(generateChartOptions(data, this));
-		},selections)
-	});
+	switch(selections.displayType) {
+		case 'day':
+			$.ajax('http:' + base + 'byDate?date=' + selections.date, {
+				method:'GET',
+				success: $.proxy(function(data) {
+					$('#chart').highcharts(generateChartOptions(data, this));
+				},selections)
+			});
+			break;
+		case 'time':
+			$.ajax('http:' + base + 'overTime', {
+				method:'GET',
+				success: $.proxy(function(data) {
+					$('#chart').highcharts(generateChartOptions(data, this));
+				}, selections)
+			})
+	}
 }
 
 $(function() {

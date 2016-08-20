@@ -123,6 +123,44 @@ def processEmploymentStats(employment):
 				})
 	return results
 
+def processEmploymentOverTime(employment):
+	results = {}
+	for dbResult in employment:
+		facultyName = str(dbResult[0])
+		program = str(dbResult[1])
+		employed = dbResult[2]
+		unemployed = dbResult[3]
+		programId = str(dbResult[4])
+		date = str(dbResult[5])
+
+		# custom override
+		faculty = facultyName
+		if facultyName in replacement_faculties:
+			faculty = replacement_faculties[facultyName]
+		if program in program_specific_replacement_faculties:
+			faculty = program_specific_replacement_faculties[program]
+
+		if faculty not in excluded_faculties:
+			if faculty not in results:
+				results[faculty] = {}
+			facultyDates = results[faculty]
+			if date not in facultyDates:
+				facultyDates[date] = {
+					'name': faculty,
+					'programs': [],
+					'employed': 0,
+					'unemployed': 0
+				}
+			facultyDates[date]['employed'] += employed
+			facultyDates[date]['unemployed'] += unemployed
+			facultyDates[date]['programs'].append({
+				'name': facultyName + ' ' + program,
+				'employed': employed,
+				'unemployed': unemployed,
+				'id': programId
+				})
+	return results
+
 ### Generation ### Create objects and lists directly used for templates and charting
 
 def generateDateOptions(term):
@@ -150,5 +188,12 @@ def index():
 def getDataByDate():
 	dbResult = database.getEmploymentStatsByDate(1165, request.args.get('date'))
 	result = processEmploymentStats(dbResult)
+
+	return Response(json.dumps(result), mimetype='application/json')
+
+@app.route('/overTime', methods=['GET'])
+def getDataOverTime():
+	dbResult = database.getEmploymentStatsOverTime(1165)
+	result = processEmploymentOverTime(dbResult)
 
 	return Response(json.dumps(result), mimetype='application/json')

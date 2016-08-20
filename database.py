@@ -79,16 +79,18 @@ def getDates(term=1165):
 		cursor.execute('SELECT date FROM dates WHERE term=? ORDER BY date DESC', (term,))
 		return cursor.fetchall()
 
-
 def getEmploymentStatsByDate(term, date):
 	with sqlite3.connect(database_path) as connection:
 		cursor = connection.cursor()
 		cursor.execute('SELECT f.faculty, f.name, SUM(e.employed), SUM(e.unemployed), f.id FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? AND e.date=? GROUP BY e.faculty', (term, date))
 		return cursor.fetchall()
-		
 
-#def getEmploymentStatsOverTime(term):
 
+def getEmploymentStatsOverTime(term):
+	with sqlite3.connect(database_path) as connection:
+		cursor = connection.cursor()
+		cursor.execute('SELECT f.faculty, f.name, SUM(e.employed), SUM(e.unemployed), f.id, e.date FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? GROUP BY e.date, e.faculty', (term,))
+		return cursor.fetchall()
 
 '''
 def dropTable(table):
