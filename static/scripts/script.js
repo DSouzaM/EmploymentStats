@@ -95,7 +95,22 @@ var columnChartDefaults = {
 
 var lineChartDefaults = {
 	chart: {
-		type: 'line'
+		type: 'line',
+		events: {
+			drilldown: function(e) {
+	            var chart = this,
+	            drilldowns = chart.userOptions.drilldown.series,
+	            series = [];
+	            chart.xAxis[0].names = [];
+	            e.preventDefault();
+	            Highcharts.each(drilldowns, function(drilldownSeries, i) {
+	                if (drilldownSeries.id === e.point.drilldown) {
+	                    chart.addSingleSeriesAsDrilldown(e.point, drilldownSeries);
+	                }
+	            });
+	            chart.applyDrilldown();
+	        }
+		}
 	},
 	title: {
 		text: 'Employment over time'
@@ -109,8 +124,22 @@ var lineChartDefaults = {
 			text: 'Number of students employed'
 		}
 	},
+	tooltip: {
+		formatter: function() {
+			return '<b>' + this.series.name + ' • ' + this.key + '</b><br>' + this.point.y + ' students employed';
+		}
+	},
 	series: [],
-
+	drilldown: {
+		series: [],
+		drillUpButton: {
+                relativeTo: 'spacingBox',
+                position: {
+                    y: 0,
+                    x: 0
+                }
+            }
+	},
 	credits: false
 };
 
@@ -262,13 +291,16 @@ function formatGroupedBarChartOptions(data, selections) {
 
 function formatLineChartOptions(data, selections) {
 	var options = $.extend(true, {}, lineChartDefaults);
-	//var dateLabels = [];
+	var dateLabels = []
 	var filter = selections.programs;
 	var programSeries = {};
 
 	// iterate over each faculty object
 	for (facultyName in data) {
 		faculty = data[facultyName]
+		if (_.isEmpty(dateLabels)) {
+			dateLabels = _.keys(faculty);
+		}
 		// iterate over each date within faculty object
 		for (dateCode in faculty) {
 			var date = faculty[dateCode]
@@ -283,7 +315,7 @@ function formatLineChartOptions(data, selections) {
 							name: programName,
 							color:colours[facultyName].secondary,
 							marker: {
-								'symbol': 'circle'
+								symbol: 'circle'
 							}
 						}
 					}
@@ -301,6 +333,7 @@ function formatLineChartOptions(data, selections) {
 	for (programName in programSeries) {
 		options.series.push(programSeries[programName]);
 	}
+	options.xAxis.categories = _.map(dateLabels, getDateByCode);
 
 	return options;
 }
@@ -308,27 +341,79 @@ function formatLineChartOptions(data, selections) {
 function formatGroupedLineChartOptions(data, selections) {
 	var options = $.extend(true, {}, lineChartDefaults);
 	var dateLabels = [];
+	var facultySeriesObj = {}; // contains array of faculty counts, and object of programs with counts
+
+	// iterate over each faculty object
 	for (facultyName in data) {
-		var seriesData = [];
-		faculty = data[facultyName]
-		for (dateCode in faculty) {
-			var date = faculty[dateCode]
-			seriesData.push({
-				y: date.employed,
-				color: colours[facultyName].primary
-			});
+		var faculty = data[facultyName]
+		if (_.isEmpty(dateLabels)) {
+			dateLabels = _.keys(faculty);
 		}
-		options.series.push({
+
+		facultySeriesObj[facultyName] = {
+			data: [],
+			name: facultyName,
 			color: colours[facultyName].secondary,
 			marker: {
 				symbol: 'circle'
 			},
-			name: facultyName,
-			data: seriesData
-		});
-		dateLabels = _.map(_.keys(faculty), getDateByCode);
+			drilldown: facultyName,
+			drilldownObj: {}
+		}
+
+		var facultySeries = facultySeriesObj[facultyName];
+		var facultyDrilldowns = facultySeries.drilldownObj;
+		// iterate over each date within faculty object
+		for (dateCode in faculty) {
+			var date = faculty[dateCode]
+
+			// build faculty level series
+			facultySeries.data.push({
+				y: date.employed,
+				color: colours[facultyName].primary,
+				drilldown: facultyName
+			});
+
+			// for each program within this faculty on a given date
+			date.programs.forEach(function(program) {
+				var programName = program.name;
+
+				// if drilldown series is undefined for this program, create it
+				if (_.isUndefined(facultyDrilldowns[programName])) {
+					facultyDrilldowns[programName] = {
+						type: 'line',
+						id: facultyName,
+						data: [],
+						name: programName,
+						color: colours[facultyName].secondary,
+						marker: {
+							symbol: 'circle'
+						}
+					}
+				}
+				// add a new value to the drilldown series for this date
+				facultyDrilldowns[programName].data.push({
+					y: program.employed,
+					color: colours[facultyName].primary
+				});
+
+			});
+		}
 	}
-	options.xAxis.categories = dateLabels;
+
+	// format the drilldown series and add the faculty series to the options
+	for (facultyName in facultySeriesObj) {
+		var facultySeries = facultySeriesObj[facultyName];
+		var drilldownSeries = facultySeries.drilldownObj;
+
+		options.series.push(facultySeries);
+		for (programName in drilldownSeries) {
+			options.drilldown.series.push(drilldownSeries[programName]);
+		}
+
+	}
+	options.xAxis.categories = _.map(dateLabels, getDateByCode);
+
 	return options;
 }
 
@@ -340,6 +425,9 @@ function generateChartOptions(data, selections) {
 		}
 		return formatBarChartOptions(data, selections);
 	} else {
+		if (selections.groupingType === 'faculty') {
+			return formatGroupedLineChartOptions(data,selections);
+		}
 		return formatLineChartOptions(data, selections);
 	}
 }

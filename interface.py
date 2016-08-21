@@ -8,6 +8,7 @@ import sys, json
 TERM = 1165
 MONTHS = {1:'Jan',2:'Feb',3:'Mar',4:'Apr',5:'May',6:'Jun',7:'Jul',8:'Aug',9:'Sep',10:'Oct',11:'Nov',12:'Dec'}
 excluded_faculties = ['ALL', 'UAE', 'TEACH']
+excluded_programs = ['ND']
 replacement_faculties = {'CA':'MATH', 'ARCH':'ENG'}
 program_specific_replacement_faculties = {'SE': 'ENG', 'CFM': 'MATH'}
 
@@ -79,7 +80,7 @@ def processTerms(terms):
 def processFaculties(faculties):
 	results = {}
 	for faculty in faculties:
-		if not (str(faculty[1]) in excluded_faculties):
+		if not (str(faculty[1]) in excluded_faculties or str(faculty[2]) in excluded_programs):
 			results[faculty[0]] = str(faculty[1] + ' ' + faculty[2])
 	return results
 
@@ -105,7 +106,7 @@ def processEmploymentStats(employment):
 		if program in program_specific_replacement_faculties:
 			faculty = program_specific_replacement_faculties[program]
 
-		if faculty not in excluded_faculties:
+		if faculty not in excluded_faculties and program not in excluded_programs:
 			if faculty not in results:
 				results[faculty] = {
 					'name': faculty,
@@ -140,7 +141,7 @@ def processEmploymentOverTime(employment):
 		if program in program_specific_replacement_faculties:
 			faculty = program_specific_replacement_faculties[program]
 
-		if faculty not in excluded_faculties:
+		if faculty not in excluded_faculties and program not in excluded_programs:
 			if faculty not in results:
 				results[faculty] = {}
 			facultyDates = results[faculty]
