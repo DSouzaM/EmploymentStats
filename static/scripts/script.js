@@ -1,27 +1,87 @@
 var colours = {
 	AHS: {
-		primary: 'rgba(0,127,138,1)',
-		secondary: 'rgba(0,154,166,0.5)'
+		primary: {
+			r: 0,
+			g: 127,
+			b: 138,
+			a: 1
+		},
+		secondary: {
+			r: 0,
+			g: 154,
+			b: 166,
+			a: 0.5
+		}
 	},
 	ARTS: {
-		primary: 'rgba(172,97,0,1)',
-		secondary: 'rgba(233,131,0,0.5)'
+		primary: {
+			r: 172,
+			g: 97,
+			b: 0,
+			a: 1
+		},
+		secondary: {
+			r: 233,
+			g: 131,
+			b: 0,
+			a: 0.5
+		}
 	},
 	ENG: {
-		primary: 'rgba(87,6,140,1)',
-		secondary: 'rgba(204,170,255,0.5)'
+		primary: {
+			r: 87,
+			g: 6,
+			b: 140,
+			a: 1
+		},
+		secondary: {
+			r: 204,
+			g: 170,
+			b: 255,
+			a: 0.5
+		}
 	},
 	ENV: {
-		primary: 'rgba(116,120,0,1)',
-		secondary: 'rgba(182,191,0,0.5)'
+		primary: {
+			r: 116,
+			g: 120,
+			b: 0,
+			a: 1
+		},
+		secondary: {
+			r: 182,
+			g: 191,
+			b: 0,
+			a: 0.5
+		}
 	},
 	MATH: {
-		primary: 'rgba(224,36,154,1)',
-		secondary: 'rgba(255,136,221,0.5)'
+		primary: {
+			r: 224,
+			g: 36,
+			b: 154,
+			a: 1
+		},
+		secondary: {
+			r: 225,
+			g: 136,
+			b: 221,
+			a: 0.5
+		}
 	},
 	SCI: {
-		primary: 'rgba(0,115,207,1)',
-		secondary: 'rgba(119,187,255,0.5)'
+		primary: {
+			r: 0,
+			g: 115,
+			b: 207,
+			a: 1
+		},
+		secondary: {
+			r: 119,
+			g: 187,
+			b: 255,
+			a: 0.5
+		}
 	}
 }
 // colours referenced from https://uwaterloo.ca/brand-guidelines-and-tools/visual-identity/digital-colour-palette
@@ -150,7 +210,16 @@ function formatPercentage(num, denom) {
 	return Math.round((num/denom)*10000)/100;
 }
 
+function getColour(rgba) {
+	return 'rgba(' + rgba.r + ',' + rgba.g + ',' + rgba.b + ',' + rgba.a + ')';
+}
 
+function getShadeOfColour(rgba, d) {
+	var nr = Math.round(rgba.r+Math.random()*d - d/2); //  +/- (d/2)
+	var ng = Math.round(rgba.g+Math.random()*d - d/2);
+	var nb = Math.round(rgba.b+Math.random()*d - d/2);
+	return 'rgba(' + nr + ',' + ng + ',' + nb + ','+ rgba.a + ')';
+}
 /*
 Bar chart data object format:
 {
@@ -179,12 +248,19 @@ function formatBarChartOptions(data, selections) {
 	var entries = [];
 	for (facultyName in data) {
 		var faculty = data[facultyName];
+		var facultyColours = colours[facultyName]
 		faculty.programs.forEach(function(entry) {
 			if (_.isEmpty(filter) || _.contains(filter, entry.id)){
 				entries.push({
 					name: entry.name,
-					numEmployed: {y: entry.employed, color: colours[facultyName].primary},
-					pctEmployed: {y: formatPercentage(entry.employed, entry.employed + entry.unemployed), color: colours[facultyName].secondary}
+					numEmployed: {
+						y: entry.employed,
+						color: getColour(facultyColours.primary)
+					},
+					pctEmployed: {
+						y: formatPercentage(entry.employed, entry.employed + entry.unemployed),
+						color: getColour(facultyColours.secondary)
+					}
 				});
 			}
 		});
@@ -217,17 +293,18 @@ function formatGroupedBarChartOptions(data, selections) {
 	var drilldownSeries = [];
 	// Iterate over each faculty
 	sortedFaculties.forEach(function(faculty) {
+		var facultyColours = colours[faculty.name];
 		// Add faculty-level series info
 		facultySeries.push({
 			numEmployed: {
 				y: faculty.employed,
-				color: colours[faculty.name].primary,
+				color: getColour(facultyColours.primary),
 				name: faculty.name,
 				drilldown: faculty.name
 			},
 			pctEmployed: {
 				y: formatPercentage(faculty.employed, faculty.employed + faculty.unemployed),
-				color: colours[faculty.name].secondary,
+				color: getColour(facultyColours.secondary),
 				name: faculty.name,
 				drilldown: faculty.name
 			}
@@ -253,7 +330,7 @@ function formatGroupedBarChartOptions(data, selections) {
 				return {
 					name: program.name,
 					y: program.numEmployed,
-					color: facultyColours.primary
+					color: getColour(facultyColours.primary)
 				};
 			}),
 			yAxis: 0,
@@ -267,7 +344,7 @@ function formatGroupedBarChartOptions(data, selections) {
 				return {
 					name: program.name,
 					y: program.pctEmployed,
-					color: facultyColours.secondary
+					color: getColour(facultyColours.secondary)
 				};
 			}),
 			yAxis: 1
@@ -298,6 +375,7 @@ function formatLineChartOptions(data, selections) {
 	// iterate over each faculty object
 	for (facultyName in data) {
 		faculty = data[facultyName]
+		var facultyColours = colours[facultyName];
 		if (_.isEmpty(dateLabels)) {
 			dateLabels = _.keys(faculty);
 		}
@@ -313,7 +391,7 @@ function formatLineChartOptions(data, selections) {
 						programSeries[programName] = {
 							data: [],
 							name: programName,
-							color:colours[facultyName].secondary,
+							color:getColour(facultyColours.secondary),
 							marker: {
 								symbol: 'circle'
 							}
@@ -322,7 +400,7 @@ function formatLineChartOptions(data, selections) {
 					// add a new value to the program series for this date
 					programSeries[programName].data.push({
 						y: program.employed,
-						color: colours[facultyName].primary
+						color: getColour(facultyColours.primary)
 					});
 				}
 			});
@@ -345,7 +423,8 @@ function formatGroupedLineChartOptions(data, selections) {
 
 	// iterate over each faculty object
 	for (facultyName in data) {
-		var faculty = data[facultyName]
+		var faculty = data[facultyName];
+		var facultyColours = colours[facultyName];
 		if (_.isEmpty(dateLabels)) {
 			dateLabels = _.keys(faculty);
 		}
@@ -353,7 +432,7 @@ function formatGroupedLineChartOptions(data, selections) {
 		facultySeriesObj[facultyName] = {
 			data: [],
 			name: facultyName,
-			color: colours[facultyName].secondary,
+			color: getColour(facultyColours.secondary),
 			marker: {
 				symbol: 'circle'
 			},
@@ -370,7 +449,7 @@ function formatGroupedLineChartOptions(data, selections) {
 			// build faculty level series
 			facultySeries.data.push({
 				y: date.employed,
-				color: colours[facultyName].primary,
+				color: getColour(facultyColours.primary),
 				drilldown: facultyName
 			});
 
@@ -385,16 +464,17 @@ function formatGroupedLineChartOptions(data, selections) {
 						id: facultyName,
 						data: [],
 						name: programName,
-						color: colours[facultyName].secondary,
+						color: getColour(facultyColours.secondary),
 						marker: {
 							symbol: 'circle'
-						}
+						},
+						pointColor: getShadeOfColour(facultyColours.primary, 80)
 					}
 				}
 				// add a new value to the drilldown series for this date
 				facultyDrilldowns[programName].data.push({
 					y: program.employed,
-					color: colours[facultyName].primary
+					color: facultyDrilldowns[programName].pointColor
 				});
 
 			});
