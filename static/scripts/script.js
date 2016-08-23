@@ -247,29 +247,30 @@ function formatBarChartOptions(data, selections) {
 	options.title.text = 'Employment on ' + getDateByCode(selections.date);
 	var filter = selections.programs;
 
-	// Iterate over the programs within each faculty, and grab the data
+	// Iterate over each faculty object
 	var entries = [];
 	for (facultyName in data) {
 		var faculty = data[facultyName];
 		var facultyColours = colours[facultyName]
-		faculty.programs.forEach(function(entry) {
-			if (_.isEmpty(filter) || _.contains(filter, entry.id)){
+		// Iterate over each program object
+		faculty.programs.forEach(function(program) {
+			if (_.isEmpty(filter) || _.contains(filter, program.id)){
 				entries.push({
-					name: entry.name,
+					name: program.name,
 					numEmployed: {
-						y: entry.employed,
+						y: program.employed,
 						color: getColour(facultyColours.primary)
 					},
 					pctEmployed: {
-						y: formatPercentage(entry.employed, entry.employed + entry.unemployed),
+						y: formatPercentage(program.employed, program.employed + program.unemployed),
 						color: getColour(facultyColours.secondary)
 					}
 				});
 			}
 		});
 	}
-	entries = _.sortBy(entries, function(entry) {
-		return entry.numEmployed.y;
+	entries = _.sortBy(entries, function(program) {
+		return program.numEmployed.y;
 	});
 
 	options.xAxis.categories = _.pluck(entries, 'name');
@@ -294,7 +295,7 @@ function formatGroupedBarChartOptions(data, selections) {
 	var sortedFaculties = _.sortBy(data, 'employed');
 	var facultySeries = [];
 	var drilldownSeries = [];
-	// Iterate over each faculty
+	// Iterate over each faculty object
 	sortedFaculties.forEach(function(faculty) {
 		var facultyColours = colours[faculty.name];
 		// Add faculty-level series info
@@ -508,7 +509,7 @@ function generateChartOptions(data, selections) {
 function updateGroupingSelector() {
 	var $displaySelect = $('#display-type-select');
 	var displayType = $displaySelect.val();
-	var $groupingDiv = $('.grouping-selection');
+	var $groupingDiv = $('#grouping-selection');
 	var $groupingSelect = $groupingDiv.find('#grouping-select');
 
 	$groupingSelect.val('');
@@ -533,7 +534,7 @@ function updateGroupingSelector() {
 function updateSpecificProgramSelector() {
 	var $groupingSelect = $('#grouping-select');
 	var groupingType = $groupingSelect.val();
-	var $programDiv = $('.program-selection');
+	var $programDiv = $('#program-selection');
 	var $programSelect = $programDiv.find('#program-select');
 
 	$programSelect.val('').trigger('chosen:updated');
@@ -555,7 +556,7 @@ function updateDateSelector(){
 	var $programSelect = $('#program-select');
 	var programs = _.compact($programSelect.val());
 
-	var $dateDiv = $('.date-selection');
+	var $dateDiv = $('#date-selection');
 	var $dateSelect = $dateDiv.find('#date-select');
 
 	$dateSelect.val('');
@@ -567,6 +568,7 @@ function updateDateSelector(){
 	}
 }
 
+// Returns an object containing the values of each dropdown
 function getSelections() {
 	return {
 		displayType: $('#display-type-select').val(),
@@ -578,14 +580,11 @@ function getSelections() {
 
 // Returns whether or not the serialized query string is valid
 function isValidQuery() {
-	var displayType = $('#display-type-select').val();
-	var groupingType = $('#grouping-select').val();
-	var programs = _.compact($('#program-select').val());
-	var date = $('#date-select').val();
-
-	return ((displayType === 'day' && date !== '') || (displayType === 'time' && (groupingType === 'faculty' || !_.isEmpty(programs))));
+	var s = getSelections();
+	return ((s.displayType === 'day' && s.date !== '') || (s.displayType === 'time' && (s.groupingType === 'faculty' || !_.isEmpty(s.programs))));
 }
 
+// Makes an AJAX call to the backend to retrieve data, and updates the chart with the correct data
 function updateChart() {
 	var base = $('head base').attr('href');
 	var selections = getSelections();
