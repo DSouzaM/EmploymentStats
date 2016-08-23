@@ -142,25 +142,31 @@ def processEmploymentOverTime(employment):
 			faculty = program_specific_replacement_faculties[program]
 
 		if faculty not in excluded_faculties and program not in excluded_programs:
+
 			if faculty not in results:
-				results[faculty] = {}
-			facultyDates = results[faculty]
-			if date not in facultyDates:
-				facultyDates[date] = {
+				results[faculty] = {
 					'name': faculty,
-					'programs': [],
-					'employed': 0,
-					'unemployed': 0
+					'data': [],
+					'programs': {}
 				}
-			facultyDates[date]['employed'] += employed
-			facultyDates[date]['unemployed'] += unemployed
-			facultyDates[date]['programs'].append({
-				'name': facultyName + ' ' + program,
-				'employed': employed,
-				'unemployed': unemployed,
-				'id': programId
-				})
+			facultyObj = results[faculty]
+
+			if program not in facultyObj['programs']:
+				facultyObj['programs'][program] = {
+					'name': facultyName + ' ' + program,
+					'id': programId,
+					'data': []
+				}
+			programObj = facultyObj['programs'][program]
+			programObj['data'].append(employed)
+
+			currentDateIndex = len(programObj['data']) - 1
+
+			if len(facultyObj['data']) <= currentDateIndex:
+				facultyObj['data'].append(0)
+			facultyObj['data'][currentDateIndex] += employed
 	return results
+
 
 ### Generation ### Create objects and lists directly used for templates and charting
 
@@ -195,6 +201,10 @@ def getDataByDate():
 @app.route('/overTime', methods=['GET'])
 def getDataOverTime():
 	dbResult = database.getEmploymentStatsOverTime(1165)
-	result = processEmploymentOverTime(dbResult)
-
+	dates = processDates(database.getDates(1165))
+	dates.reverse()
+	result = {
+		'dates': dates,
+		'employment': processEmploymentOverTime(dbResult)
+	}
 	return Response(json.dumps(result), mimetype='application/json')

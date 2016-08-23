@@ -176,7 +176,7 @@ var lineChartDefaults = {
 		text: 'Employment over time'
 	},
 	legend: {
-		enabled: false
+		enabled: true
 	},
 	xAxis: {},
 	yAxis: {
@@ -220,6 +220,8 @@ function getShadeOfColour(rgba, d) {
 	var nb = Math.round(rgba.b+Math.random()*d - d/2);
 	return 'rgba(' + nr + ',' + ng + ',' + nb + ','+ rgba.a + ')';
 }
+
+
 /*
 Bar chart data object format:
 {
@@ -233,12 +235,13 @@ Bar chart data object format:
 					unemployed: int,
 					name: string,
 					id: string
-			}, ...
+			},
+			...
 		]
-	}, ...
+	},
+	...
 }
 */
-
 function formatBarChartOptions(data, selections) {
 	var options = $.extend(true, {}, columnChartDefaults);
 	options.title.text = 'Employment on ' + getDateByCode(selections.date);
@@ -366,134 +369,123 @@ function formatGroupedBarChartOptions(data, selections) {
 	return options;
 }
 
+
+/*
+Line chart data object format:
+{
+	dates: [...],
+	employment: {
+		faculty: {
+			name: string,
+			data: [...],
+			programs: {
+				program: {
+					name: string,
+					id: string,
+					data: [...]
+				},
+				...
+			}
+		},
+		...
+	}
+}
+*/
 function formatLineChartOptions(data, selections) {
 	var options = $.extend(true, {}, lineChartDefaults);
-	var dateLabels = []
+	var dateLabels = _.map(data.dates, getDateByCode);
+	var employment = data.employment;
+	var programSeries = [];
 	var filter = selections.programs;
-	var programSeries = {};
 
-	// iterate over each faculty object
-	for (facultyName in data) {
-		faculty = data[facultyName]
+	// Iterate over each faculty object
+	for (facultyName in employment) {
+		var faculty = employment[facultyName];
 		var facultyColours = colours[facultyName];
-		if (_.isEmpty(dateLabels)) {
-			dateLabels = _.keys(faculty);
-		}
-		// iterate over each date within faculty object
-		for (dateCode in faculty) {
-			var date = faculty[dateCode]
-			// for each program within this faculty on a given date
-			date.programs.forEach(function(program) {
-				var programName = program.name;
-				if (_.isEmpty(filter) || _.contains(filter, program.id)) {
-					// if series is undefined for this program, create it
-					if (_.isUndefined(programSeries[programName])) {
-						programSeries[programName] = {
-							data: [],
-							name: programName,
-							color:getColour(facultyColours.secondary),
-							marker: {
-								symbol: 'circle'
-							}
+
+		// Iterate over each program within faculty object
+		for (programName in faculty.programs) {
+			var program = faculty.programs[programName];
+
+			if (_.isEmpty(filter) || _.contains(filter, program.id)) {
+				var pointColor = getShadeOfColour(facultyColours.primary, 80);
+				programSeries.push({
+					data: _.map(program.data, function(employed) {
+						return {
+							y: employed,
+							color: pointColor
 						}
+					}),
+					name: program.name,
+					color: getColour(facultyColours.secondary),
+					marker: {
+						symbol: 'circle'
 					}
-					// add a new value to the program series for this date
-					programSeries[programName].data.push({
-						y: program.employed,
-						color: getColour(facultyColours.primary)
-					});
-				}
-			});
+				});
+			}
 		}
 	}
 
-	// now, we have the data we want. simply add the series to options
-	for (programName in programSeries) {
-		options.series.push(programSeries[programName]);
-	}
-	options.xAxis.categories = _.map(dateLabels, getDateByCode);
-
+	options.series = programSeries;
+	options.xAxis.categories = dateLabels;
 	return options;
 }
 
 function formatGroupedLineChartOptions(data, selections) {
 	var options = $.extend(true, {}, lineChartDefaults);
-	var dateLabels = [];
-	var facultySeriesObj = {}; // contains array of faculty counts, and object of programs with counts
+	var dateLabels = _.map(data.dates, getDateByCode);
+	var employment = data.employment;
+	var facultySeries = [];
+	var drilldownSeries = [];
 
 	// iterate over each faculty object
-	for (facultyName in data) {
-		var faculty = data[facultyName];
+	for (facultyName in employment) {
+		var faculty = employment[facultyName];
 		var facultyColours = colours[facultyName];
-		if (_.isEmpty(dateLabels)) {
-			dateLabels = _.keys(faculty);
-		}
+		var pointColor = getColour(facultyColours.primary);
+		var lineColor = getColour(facultyColours.secondary);
 
-		facultySeriesObj[facultyName] = {
-			data: [],
+		facultySeries.push({
+			data: _.map(faculty.data, function(employed){
+				return {
+					y: employed,
+					color: pointColor,
+					drilldown: facultyName
+				}
+			}),
 			name: facultyName,
-			color: getColour(facultyColours.secondary),
+			color: lineColor,
 			marker: {
 				symbol: 'circle'
-			},
-			drilldown: facultyName,
-			drilldownObj: {}
-		}
+			}
+		});
 
-		var facultySeries = facultySeriesObj[facultyName];
-		var facultyDrilldowns = facultySeries.drilldownObj;
-		// iterate over each date within faculty object
-		for (dateCode in faculty) {
-			var date = faculty[dateCode]
+		// Iterate over each program within faculty object
+		for (programName in faculty.programs) {
+			var program = faculty.programs[programName];
+			var drilldownPointColor = getShadeOfColour(facultyColours.primary, 80);
 
-			// build faculty level series
-			facultySeries.data.push({
-				y: date.employed,
-				color: getColour(facultyColours.primary),
-				drilldown: facultyName
-			});
-
-			// for each program within this faculty on a given date
-			date.programs.forEach(function(program) {
-				var programName = program.name;
-
-				// if drilldown series is undefined for this program, create it
-				if (_.isUndefined(facultyDrilldowns[programName])) {
-					facultyDrilldowns[programName] = {
-						type: 'line',
-						id: facultyName,
-						data: [],
-						name: programName,
-						color: getColour(facultyColours.secondary),
-						marker: {
-							symbol: 'circle'
-						},
-						pointColor: getShadeOfColour(facultyColours.primary, 80)
+			drilldownSeries.push({
+				type: 'line',
+				data: _.map(program.data, function(employed) {
+					return {
+						y: employed,
+						color: drilldownPointColor
 					}
-				}
-				// add a new value to the drilldown series for this date
-				facultyDrilldowns[programName].data.push({
-					y: program.employed,
-					color: facultyDrilldowns[programName].pointColor
-				});
-
+				}),
+				name: programName,
+				id: facultyName,
+				marker: {
+					symbol: 'circle'
+				},
+				color: lineColor
 			});
 		}
 	}
 
-	// format the drilldown series and add the faculty series to the options
-	for (facultyName in facultySeriesObj) {
-		var facultySeries = facultySeriesObj[facultyName];
-		var drilldownSeries = facultySeries.drilldownObj;
-
-		options.series.push(facultySeries);
-		for (programName in drilldownSeries) {
-			options.drilldown.series.push(drilldownSeries[programName]);
-		}
-
-	}
-	options.xAxis.categories = _.map(dateLabels, getDateByCode);
-
+	options.series = facultySeries;
+	options.drilldown.series = drilldownSeries;
+	options.xAxis.categories = dateLabels;
 	return options;
 }
 
@@ -577,15 +569,15 @@ function updateDateSelector(){
 
 function getSelections() {
 	return {
-			displayType: $('#display-type-select').val(),
-			groupingType: $('#grouping-select').val(),
-			programs: _.compact($('#program-select').val()),
-			date: $('#date-select').val()
-		};
+		displayType: $('#display-type-select').val(),
+		groupingType: $('#grouping-select').val(),
+		programs: _.compact($('#program-select').val()),
+		date: $('#date-select').val()
+	};
 }
 
 // Returns whether or not the serialized query string is valid
-function isValidQuery(){
+function isValidQuery() {
 	var displayType = $('#display-type-select').val();
 	var groupingType = $('#grouping-select').val();
 	var programs = _.compact($('#program-select').val());

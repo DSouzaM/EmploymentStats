@@ -89,7 +89,7 @@ def getEmploymentStatsByDate(term, date):
 def getEmploymentStatsOverTime(term):
 	with sqlite3.connect(database_path) as connection:
 		cursor = connection.cursor()
-		cursor.execute('SELECT f.faculty, f.name, SUM(e.employed), SUM(e.unemployed), f.id, e.date FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? GROUP BY e.date, e.faculty', (term,))
+		cursor.execute('SELECT f.faculty, f.name, SUM(e.employed), SUM(e.unemployed), f.id, e.date FROM employment AS e INNER JOIN faculties AS f ON e.faculty=f.id AND e.term=f.term WHERE e.term=? GROUP BY e.date, e.faculty ORDER BY e.date ASC', (term,))
 		return cursor.fetchall()
 
 '''
