@@ -2,56 +2,65 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Employment Statistics</title>
+    <title>Co-op Employment Statistics</title>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js" type="text/javascript"></script>
     <script src="//code.highcharts.com/highcharts.js" type="text/javascript"></script>
     <script src="https://code.highcharts.com/modules/drilldown.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js" type="text/javascript"></script>
     <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/chosen/1.1.0/chosen.min.css">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/style.css') }}">
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/chosen/1.1.0/chosen.jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='styles/style.css') }}">
     <base href="//127.0.0.1:5000/">
   </head>
   <body>
-  <h1>Employment Statistics</h1> 
-  <form id="chart-data-options">
-    <div id="display-selection" class="option"> 
-      <span>Show me employment</span>
-      <select id="display-type-select" name="display">
-        <option value=""></option>
-        <option value="day">by day</option>
-        <option value="time">over time</option>
-      </select>
+    <div class="centre">
+      <div id="header">
+        <h1><span>Co-op Employment Statistics</span>
+          <a id="github-button" href="https://github.com/DSouzaM/EmploymentStats">
+            <div class="github-icon"></div>
+          </a>
+        </h1>       
+      </div>
+
+      <form id="chart-data-options">
+        <div id="display-selection" class="option">
+          <span>Show me employment</span>
+          <select id="display-type-select" name="display">
+            <option value=""></option>
+            <option value="day">by day</option>
+            <option value="time">over time</option>
+          </select>
+        </div>
+        <div id="grouping-selection" class="option" hidden>
+          <span>for</span>
+          <select id="grouping-select" name="grouping">
+            <option value=""></option>
+            <option value="all">all programs</option>
+            <option value="faculty">each faculty</option>
+            <option value="specific">specific programs</option>
+          </select>
+        </div>
+        <div id="program-selection" class="option" hidden>
+          <select multiple id="program-select" name="program">
+          {% for program in programs %}
+            <option value="{{ program.code }}">{{ program.label }}</option>
+          {% endfor %}
+          </select>
+        </div>
+        <div id="date-selection" class="option" hidden>
+          <span>on</span>
+          <select id="date-select" name="date">
+            <option value=""></option>
+          {% for date in dates %}
+            <option value="{{ date.code }}">{{ date.label }}</option>
+          {% endfor %}
+          </select>
+        </div>
+        <br>
+      </form>
+      <br>
+      <div id="chart"></div>
     </div>
-    <div id="grouping-selection" class="option" hidden>
-      <span>for</span>
-      <select id="grouping-select" name="grouping">
-        <option value=""></option>
-        <option value="all">all programs</option>
-        <option value="faculty">each faculty</option>
-        <option value="specific">specific programs</option>
-      </select>
-    </div>
-    <div id="program-selection" class="option" hidden>
-      <select multiple id="program-select" name="program">
-      {% for program in programs %}
-        <option value="{{ program.code }}">{{ program.label }}</option>
-      {% endfor %}
-      </select>
-    </div>
-    <div id="date-selection" class="option" hidden>
-      <span>on</span>
-      <select id="date-select" name="date">
-        <option value=""></option>
-      {% for date in dates %}
-        <option value="{{ date.code }}">{{ date.label }}</option>
-      {% endfor %}
-      </select>
-    </div>
-    <br>
-  </form>
-  <br>
-  <div id="chart"></div>
   <script src="{{ url_for('static', filename='scripts/script.js') }}" type="text/javascript"></script>
   </body>
 </html>

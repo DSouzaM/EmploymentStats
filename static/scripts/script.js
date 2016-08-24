@@ -88,6 +88,8 @@ var colours = {
 
 var columnChartDefaults = {
 	chart: {
+		marginTop: 30,
+		backgroundColor: '#f5f5f5',
 		type: 'column',
 		events: {
 			drilldown: function(e) {
@@ -108,7 +110,9 @@ var columnChartDefaults = {
 	lang: {
 		drillUpText: 'Return to Faculty view'
 	},
-	title: {},
+	title: {
+		text: null
+	},
 	legend: {
 		enabled: false
 	},
@@ -155,6 +159,8 @@ var columnChartDefaults = {
 
 var lineChartDefaults = {
 	chart: {
+		marginTop: 30,
+		backgroundColor: '#f5f5f5',
 		type: 'line',
 		events: {
 			drilldown: function(e) {
@@ -173,7 +179,7 @@ var lineChartDefaults = {
 		}
 	},
 	title: {
-		text: 'Employment over time'
+		text: null
 	},
 	legend: {
 		enabled: true
@@ -244,7 +250,6 @@ Bar chart data object format:
 */
 function formatBarChartOptions(data, selections) {
 	var options = $.extend(true, {}, columnChartDefaults);
-	options.title.text = 'Employment on ' + getDateByCode(selections.date);
 	var filter = selections.programs;
 
 	// Iterate over each faculty object
@@ -290,7 +295,6 @@ function formatBarChartOptions(data, selections) {
 
 function formatGroupedBarChartOptions(data, selections) {
 	var options = $.extend(true, {}, columnChartDefaults);
-	options.title.text = 'Employment on ' + getDateByCode(selections.date);
 
 	var sortedFaculties = _.sortBy(data, 'employed');
 	var facultySeries = [];
@@ -608,6 +612,7 @@ function updateChart() {
 }
 
 $(function() {
+
 	$('#chart-data-options select').on('change', function() {
 		switch(this.id) {
 			case 'display-type-select':
