@@ -602,12 +602,22 @@ function updateChart() {
 			});
 			break;
 		case 'time':
-			$.ajax('http:' + base + 'overTime', {
+			var rawFile = new XMLHttpRequest();
+			rawFile.overrideMimeType('application/json');
+			rawFile.open('GET', 'overTime.json', true);
+			rawFile.onreadystatechange = function() {
+				if (rawFile.readyState === 4 && rawFile.status == "200") {
+					console.log(rawFile.responseText);
+				}
+			}
+			rawFile.send();
+
+			/*$.ajax('http:' + base + 'overTime', {
 				method:'GET',
 				success: $.proxy(function(data) {
 					$('#chart').highcharts(generateChartOptions(data, this));
 				}, selections)
-			})
+			})*/
 	}
 }
 
