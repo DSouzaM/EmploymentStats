@@ -602,27 +602,13 @@ function updateChart() {
 			});
 			break;
 		case 'time':
-			var rawFile = new XMLHttpRequest();
-			rawFile.overrideMimeType('application/json');
-			rawFile.open('GET', 'overTime.json', true);
-			rawFile.onreadystatechange = function() {
-				if (rawFile.readyState === 4 && rawFile.status == "200") {
-					console.log(rawFile.responseText);
-				}
-			}
-			rawFile.send();
+			var data = JSON.parse($('#over-time').text());
+			$('#chart').highcharts(generateChartOptions(data,selections))
 
-			/*$.ajax('http:' + base + 'overTime', {
-				method:'GET',
-				success: $.proxy(function(data) {
-					$('#chart').highcharts(generateChartOptions(data, this));
-				}, selections)
-			})*/
 	}
 }
 
 $(function() {
-	console.log("beeeeep");
 	$('#chart-data-options select').on('change', function() {
 		switch(this.id) {
 			case 'display-type-select':
@@ -640,4 +626,3 @@ $(function() {
 		}
 	});
 });
-console.log("beep");
