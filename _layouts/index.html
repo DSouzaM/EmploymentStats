@@ -11,7 +11,7 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.1.0/chosen.jquery.min.js"></script>
     <link rel="stylesheet" type="text/css" href="styles/style.css">
     <script src="scripts/script.js" type="text/javascript"></script>
-    <base href="//127.0.0.1:5000/">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ "/favicon.ico" | prepend: site.baseurl }}" >
   </head>
   <body>
     <div class="centre">
@@ -211,6 +211,8 @@
       <div id="chart"></div>
       {% assign overTime = site.data.overTime || jsonify %} 
       <span id="over-time" hidden>{{ overTime }}</span>
+      {% assign byDate = site.data.byDate || jsonify %}
+      <span id="by-date" hidden>{{ byDate }}</span>
     </div>
   </body>
 </html>

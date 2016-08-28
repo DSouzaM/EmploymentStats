@@ -113,6 +113,9 @@ var columnChartDefaults = {
 	title: {
 		text: null
 	},
+	subtitle: {
+		text: '<i>For the sake of privacy, the information displayed is random. It does not represent actual employment statistics.</i>'
+	},
 	legend: {
 		enabled: false
 	},
@@ -164,22 +167,29 @@ var lineChartDefaults = {
 		type: 'line',
 		events: {
 			drilldown: function(e) {
-	            var chart = this,
-	            drilldowns = chart.userOptions.drilldown.series,
-	            series = [];
-	            chart.xAxis[0].names = [];
-	            e.preventDefault();
-	            Highcharts.each(drilldowns, function(drilldownSeries, i) {
-	                if (drilldownSeries.id === e.point.drilldown) {
-	                    chart.addSingleSeriesAsDrilldown(e.point, drilldownSeries);
-	                }
-	            });
-	            chart.applyDrilldown();
-	        }
+				if (e.originalEvent.target.tagName === 'path') {
+		            var chart = this,
+		            drilldowns = chart.userOptions.drilldown.series,
+		            series = [];
+		            chart.xAxis[0].names = [];
+		            e.preventDefault();
+		            Highcharts.each(drilldowns, function(drilldownSeries, i) {
+		                if (drilldownSeries.id === e.point.drilldown) {
+		                    chart.addSingleSeriesAsDrilldown(e.point, drilldownSeries);
+		                }
+		            });
+		            chart.applyDrilldown();
+		        } else {
+		    		return false;
+		   		}
+		    } 
 		}
 	},
 	title: {
 		text: null
+	},
+	subtitle: {
+		text: '<i>For the sake of privacy, the information displayed is random. It does not represent actual employment statistics.</i>'
 	},
 	legend: {
 		enabled: true
@@ -590,20 +600,15 @@ function isValidQuery() {
 
 // Makes an AJAX call to the backend to retrieve data, and updates the chart with the correct data
 function updateChart() {
-	var base = $('head base').attr('href');
 	var selections = getSelections();
 	switch(selections.displayType) {
 		case 'day':
-			$.ajax('http:' + base + 'byDate?date=' + selections.date, {
-				method:'GET',
-				success: $.proxy(function(data) {
-					$('#chart').highcharts(generateChartOptions(data, this));
-				},selections)
-			});
+			var data = JSON.parse($('#by-date').text());
+			$('#chart').highcharts(generateChartOptions(data[selections.date], selections))
 			break;
 		case 'time':
 			var data = JSON.parse($('#over-time').text());
-			$('#chart').highcharts(generateChartOptions(data,selections))
+			$('#chart').highcharts(generateChartOptions(data, selections))
 
 	}
 }
